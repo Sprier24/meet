@@ -89,9 +89,17 @@ export default function App() {
     Decided: "bg-purple-200 text-gray-800 border-2 border-purple-900 shadow-lg shadow-purple-900/50",
   };
 
-  const formatDate = (dateString: string): string => {
+  const formatDate = (dateString: string | Date | null): string => {
+    if (!dateString) return '-';
+    
     const date = new Date(dateString);
-    return date.toISOString().split("T")[0];
+    if (isNaN(date.getTime())) return '-'; // Return dash if date is invalid
+    
+    try {
+      return date.toISOString().split('T')[0];
+    } catch (error) {
+      return '-'; // Return dash if date cannot be formatted
+    }
   };
 
   const handleDragStart = (e: React.DragEvent, lead: Lead, fromStatus: string) => {
@@ -137,7 +145,7 @@ export default function App() {
         <SidebarInset>
           <header className="flex h-16 items-center px-4 w-full border-b shadow-sm">
             <SidebarTrigger className="mr-2" />
-             <ModeToggle/>
+            <ModeToggle />
             <Separator orientation="vertical" className="h-6 mx-2" />
             <Breadcrumb>
               <BreadcrumbList className="flex items-center space-x-2">
@@ -225,8 +233,8 @@ export default function App() {
                       setIsModalOpen(false); // Close Modal
                     }}
                   >
-                    <MdCancel className="text-white text-2xl"/>
-                      
+                    <MdCancel className="text-white text-2xl" />
+
                   </div>
 
                   {/* Title */}
@@ -240,7 +248,7 @@ export default function App() {
                         <p key={key} className="text-sm">
                           <strong>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong>{" "}
                           {["date", "endDate"].includes(key) && value
-                            ? new Date(value).toLocaleDateString()
+                            ? formatDate(value)
                             : value || "N/A"}
                         </p>
                       ))}

@@ -58,10 +58,6 @@ const data = {
           url: "/lead",
         },
         {
-          title: "List",
-          
-        },
-        {
           title: "Graph",
           url: "",
         },
