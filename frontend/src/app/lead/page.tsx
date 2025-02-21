@@ -1,6 +1,5 @@
 "use client"
 
-import Lead from "../lead/form"
 import {
     SidebarInset,
     SidebarProvider,
@@ -87,21 +86,7 @@ const formSchema = z.object({
 export default function LeadPage() {
     const [leads, setLeads] = useState<Lead[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const [newLead, setNewLead] = useState<Lead>({
-        _id: "",
-        companyName: "",
-        customerName: "",
-        contactNumber: "",
-        emailAddress: "",
-        address: "",
-        productName: "",
-        amount: "",
-        gstNumber: "",
-        status: "New",
-        date: "",
-        endDate: "",
-        notes: "",
-    });
+
 
     const fetchLeads = async () => {
         try {

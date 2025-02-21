@@ -3,11 +3,21 @@
 import * as React from "react"
 import {
   AudioWaveform,
+  BellMinus,
+  BookCheck,
+  CalendarSync,
   CirclePlay,
   Command,
   File,
   GalleryVerticalEnd,
+  HandCoins,
+  Handshake,
+  ReceiptText,
+  ScrollText,
   Settings,
+  SquareUser,
+  Target,
+  UserX,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -50,7 +60,7 @@ const data = {
     {
       title: "Lead",
       url: "#",
-      icon: CirclePlay,
+      icon: Target,
       isActive: window.location.pathname === "",
       items: [
         {
@@ -70,12 +80,12 @@ const data = {
     {
       title: "Invoice",
       url: "#",
-      icon: CirclePlay,
+      icon: ReceiptText,
       isActive: window.location.pathname === "",
       items: [
         {
           title: "Create",
-          url: "/invocie",
+          url: "/invoice",
         },
         {
           title: "List",
@@ -94,7 +104,7 @@ const data = {
     {
       title: "Reminder",
       url: "#",
-      icon: CirclePlay,
+      icon: BellMinus,
       isActive: window.location.pathname === "",
       items: [
         {
@@ -114,7 +124,7 @@ const data = {
     {
       title: "Deal",
       url: "#",
-      icon: CirclePlay,
+      icon: Handshake,
       isActive: window.location.pathname === "",
       items: [
         {
@@ -138,7 +148,7 @@ const data = {
     {
       title: "Task",
       url: "#",
-      icon: CirclePlay,
+      icon: BookCheck,
       isActive: window.location.pathname === "",
       items: [
         {
@@ -162,7 +172,7 @@ const data = {
     {
       title: "Complaint",
       url: "#",
-      icon: CirclePlay,
+      icon: UserX,
       isActive: window.location.pathname === "",
       items: [
         {
@@ -182,7 +192,7 @@ const data = {
     {
       title: "Contact",
       url: "#",
-      icon: CirclePlay,
+      icon: SquareUser,
       isActive: window.location.pathname === "",
       items: [
         {
@@ -202,7 +212,7 @@ const data = {
     {
       title: "Account",
       url: "#",
-      icon: CirclePlay,
+      icon: HandCoins,
       isActive: window.location.pathname === "",
       items: [
         {
@@ -218,7 +228,7 @@ const data = {
     {
       title: "Documents",
       url: "#",
-      icon: CirclePlay,
+      icon: ScrollText,
       isActive: window.location.pathname === "",
       items: [
         {
@@ -238,7 +248,7 @@ const data = {
     {
       title: "Schedule",
       url: "#",
-      icon: CirclePlay,
+      icon: CalendarSync,
       isActive: window.location.pathname === "",
       items: [
         {
