@@ -1,6 +1,5 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Lead from "../lead/form"
 import {
     SidebarInset,
@@ -366,18 +365,17 @@ export default function LeadPage() {
                 </span>
                 <Pagination
                     isCompact
-                    showControls
+                    // showControls
                     showShadow
                     color="success"
                     page={page}
                     total={pages}
                     onChange={setPage}
                     classNames={{
-                        // base: "gap-2 rounded-2xl shadow-lg p-2 bg-white dark:bg-default-100",
+                        // base: "gap-2 rounded-2xl shadow-lg p-2 dark:bg-default-100",
                         cursor: "bg-[hsl(339.92deg_91.04%_52.35%)] shadow-md",
                         item: "data-[active=true]:bg-[hsl(339.92deg_91.04%_52.35%)] data-[active=true]:text-white rounded-lg",
                     }}
-
                 />
 
                 <div className="rounded-lg bg-default-100 hover:bg-default-200 hidden sm:flex w-[30%] justify-end gap-2">
