@@ -29,7 +29,7 @@ import { Chip, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Pagination
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Lead {
-    id: number;
+    _id: string;
     companyName: string;
     customerName: string;
     contactNumber: string;
@@ -53,7 +53,7 @@ const generateUniqueId = () => {
 const columns = [
     { name: "COMPANY", uid: "companyName", sortable: true },
     { name: "CUSTOMER", uid: "customerName", sortable: true },
-    { name: "CONTACT", uid: "contactNumber" },
+    { name: "CONTACT", uid: "contactNumber", sortable: true },
     { name: "EMAIL", uid: "emailAddress", sortable: true },
     { name: "ADDRESS", uid: "address", sortable: true },
     { name: "PRODUCT", uid: "productName", sortable: true },
@@ -87,6 +87,21 @@ const formSchema = z.object({
 export default function LeadPage() {
     const [leads, setLeads] = useState<Lead[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [newLead, setNewLead] = useState<Lead>({
+        _id: "",
+        companyName: "",
+        customerName: "",
+        contactNumber: "",
+        emailAddress: "",
+        address: "",
+        productName: "",
+        amount: "",
+        gstNumber: "",
+        status: "New",
+        date: "",
+        endDate: "",
+        notes: "",
+    });
 
     const fetchLeads = async () => {
         try {
@@ -123,7 +138,7 @@ export default function LeadPage() {
             // Map the data with safe key generation
             const leadsWithKeys = leadsData.map((lead: Lead) => ({
                 ...lead,
-                key: lead.id?.toString() || generateUniqueId()
+                key: lead._id || generateUniqueId()
             }));
 
             setLeads(leadsWithKeys);
@@ -229,6 +244,103 @@ export default function LeadPage() {
         });
     }, [sortDescriptor, items]);
 
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+
+    // Function to handle edit button click
+    const handleEditClick = (lead: Lead) => {
+        setSelectedLead(lead);
+        // Pre-fill the form with lead data
+        form.reset({
+            companyName: lead.companyName,
+            customerName: lead.customerName,
+            emailAddress: lead.emailAddress,
+            contactNumber: lead.contactNumber || "",
+            address: lead.address,
+            productName: lead.productName,
+            amount: parseFloat(lead.amount),
+            gstNumber: lead.gstNumber,
+            status: lead.status as "New" | "Discussion" | "Demo" | "Proposal" | "Decided",
+            date: lead.date ? new Date(lead.date) : undefined,
+            endDate: lead.endDate ? new Date(lead.endDate) : undefined,
+            notes: lead.notes || "",
+            isActive: lead.isActive === "true",
+        });
+        setIsEditOpen(true);
+    };
+
+    // Function to handle delete button click
+    const handleDeleteClick = async (lead: Lead) => {
+        if (!window.confirm("Are you sure you want to delete this lead?")) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8000/api/v1/lead/deleteLead/${lead._id}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Failed to delete lead");
+            }
+
+            toast({
+                title: "Lead Deleted",
+                description: "The lead has been successfully deleted.",
+            });
+
+            // Refresh the leads list
+            fetchLeads();
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error instanceof Error ? error.message : "Failed to delete lead",
+                variant: "destructive",
+            });
+        }
+    };
+
+    // Function to handle edit form submission
+    async function onEdit(values: z.infer<typeof formSchema>) {
+        if (!selectedLead?._id) return;
+
+        setIsSubmitting(true);
+        try {
+            const response = await fetch(`http://localhost:8000/api/v1/lead/updateLead/${selectedLead._id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(values),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Failed to update lead");
+            }
+
+            toast({
+                title: "Lead Updated",
+                description: "The lead has been successfully updated.",
+            });
+
+            // Close dialog and reset form
+            setIsEditOpen(false);
+            setSelectedLead(null);
+            form.reset();
+
+            // Refresh the leads list
+            fetchLeads();
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error instanceof Error ? error.message : "Failed to update lead",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
     const renderCell = React.useCallback((lead: Lead, columnKey: string) => {
         const cellValue = lead[columnKey as keyof Lead];
 
@@ -236,13 +348,19 @@ export default function LeadPage() {
             case "actions":
                 return (
                     <div className="relative flex items-center gap-2">
-                        <Tooltip content="Edit user">
-                            <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
+                        <Tooltip content="Edit lead">
+                            <span
+                                className="text-lg text-default-400 cursor-pointer active:opacity-50"
+                                onClick={() => handleEditClick(lead)}
+                            >
                                 <Edit className="h-4 w-4" />
                             </span>
                         </Tooltip>
-                        <Tooltip color="danger" content="Delete user">
-                            <span className="text-lg text-danger cursor-pointer active:opacity-50">
+                        <Tooltip color="danger" content="Delete lead">
+                            <span
+                                className="text-lg text-danger cursor-pointer active:opacity-50"
+                                onClick={() => handleDeleteClick(lead)}
+                            >
                                 <Trash2 className="h-4 w-4" />
                             </span>
                         </Tooltip>
@@ -484,7 +602,7 @@ export default function LeadPage() {
                         </TableHeader>
                         <TableBody emptyContent={"No leads found"} items={sortedItems}>
                             {(item) => (
-                                <TableRow key={item.id}>
+                                <TableRow key={item._id}>
                                     {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
                                 </TableRow>
                             )}
@@ -747,6 +865,266 @@ export default function LeadPage() {
                                             </>
                                         ) : (
                                             "Submit Lead"
+                                        )}
+                                    </Button>
+                                </form>
+                            </Form>
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                        <DialogContent className="sm:max-w-[600px]">
+                            <DialogHeader>
+                                <DialogTitle>Edit Lead</DialogTitle>
+                                <DialogDescription>
+                                    Update the lead details.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onEdit)} className="space-y-6">
+                                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <FormField
+                                            control={form.control}
+                                            name="companyName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Company Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Enter company name" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="customerName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Customer Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Enter customer name" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <FormField
+                                            control={form.control}
+                                            name="emailAddress"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Email Address</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Enter email address" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="address"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Address</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Enter address" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <FormField
+                                            control={form.control}
+                                            name="productName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Product Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Enter product name" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="amount"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Amount</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="Enter amount"
+                                                            type="number"
+                                                            {...field}
+                                                            onChange={(e) => {
+                                                                const value = e.target.valueAsNumber || 0;
+                                                                field.onChange(value);
+                                                            }}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <FormField
+                                            control={form.control}
+                                            name="gstNumber"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>GST Number</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Enter GST number" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="status"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Status</FormLabel>
+                                                    <FormControl>
+                                                        <select
+                                                            {...field}
+                                                            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        >
+                                                            <option value="New">New</option>
+                                                            <option value="Discussion">Discussion</option>
+                                                            <option value="Demo">Demo</option>
+                                                            <option value="Proposal">Proposal</option>
+                                                            <option value="Decided">Decided</option>
+                                                        </select>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <FormField
+                                            control={form.control}
+                                            name="contactNumber"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Contact Number</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Enter contact number" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <FormField
+                                            control={form.control}
+                                            name="date"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Start Date</FormLabel>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <FormControl>
+                                                                <Button
+                                                                    variant={"outline"}
+                                                                    className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                                                                >
+                                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                                </Button>
+                                                            </FormControl>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0" align="start">
+                                                            <Calendar
+                                                                mode="single"
+                                                                selected={field.value}
+                                                                onSelect={field.onChange}
+                                                                disabled={(date) => date > new Date()}
+                                                                initialFocus
+                                                            />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="endDate"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>End Date</FormLabel>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <FormControl>
+                                                                <Button
+                                                                    variant={"outline"}
+                                                                    className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                                                                >
+                                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                                </Button>
+                                                            </FormControl>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0" align="start">
+                                                            <Calendar
+                                                                mode="single"
+                                                                selected={field.value}
+                                                                onSelect={field.onChange}
+                                                                disabled={(date) => date < new Date()}
+                                                                initialFocus
+                                                            />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <FormField
+                                        control={form.control}
+                                        name="notes"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Notes</FormLabel>
+                                                <FormControl>
+                                                    <textarea
+                                                        placeholder="Enter notes"
+                                                        {...field}
+                                                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                                        {isSubmitting ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Updating...
+                                            </>
+                                        ) : (
+                                            "Update Lead"
                                         )}
                                     </Button>
                                 </form>
