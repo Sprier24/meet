@@ -231,7 +231,7 @@ export default function InvoicePage() {
             amount: invoice.amount,
             discount: invoice.discount || 0,
             gstRate: invoice.gstRate || 0,
-            status: invoice.status as "New" | "Paid" | "Pending",
+            status: invoice.status as "Paid" | "Unpaid" | "Pending",
             date: invoice.date ? new Date(invoice.date) : undefined,
             endDate: invoice.endDate ? new Date(invoice.endDate) : undefined,
             totalWithoutGst: invoice.totalWithoutGst || 0,

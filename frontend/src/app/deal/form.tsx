@@ -53,7 +53,7 @@ export default function DealForm() {
     setIsSubmitting(true);
     try {
       const method = "POST"; // Since there's no id, we are only creating a new deal
-      const response = await fetch("/api/deal", {
+      const response = await fetch("http://localhost:8000/api/v1/deal/dealAdd", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -70,7 +70,7 @@ export default function DealForm() {
         description: `Your deal has been created successfully.`,
       });
 
-      router.push(`/deal/${data.id}`); // Redirect to the deal details page
+      // router.push(`/deal/${data.id}`); // Redirect to the deal details page
     } catch (error) {
       toast({
         title: "Error",

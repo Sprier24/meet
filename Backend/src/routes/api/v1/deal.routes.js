@@ -2,11 +2,11 @@ const express = require("express");
 const DealController = require("../../../controller/deal.controller");
 const router = express.Router();
 
-router.post("/createLead", DealController.createDeal);         
-router.get("/getAllLeads", DealController.getAllLeads);        
-router.get("/getLead/:id", DealController.getLeadById);         
-router.put("/updateLead/:id", DealController.updateLead);    
-router.delete("/deleteLead/:id", DealController.deleteLead);   
+router.post("/createDeal", DealController.createDeal);         
+router.get("/getAllDeals", DealController.getAllDeals);        
+router.get("/getDeal/:id", DealController.getDealById);         
+router.put("/updateDeal/:id", DealController.updateDeal);    
+router.delete("/deleteDeal/:id", DealController.deleteDeal);   
 router.get('/searchByMonth', DealController.searchByMonth);
 router.get('/searchByYear', DealController.searchByYear);
 router.get('/searchByDate', DealController.searchByDate);

@@ -88,10 +88,6 @@ const data = {
           url: "/invoice",
         },
         {
-          title: "List",
-          url: "",
-        },
-        {
           title: "Graph",
           url: "",
         },
@@ -130,10 +126,6 @@ const data = {
         {
           title: "Create",
           url: "/deal",
-        },
-        {
-          title: "List",
-          url: "",
         },
         {
           title: "Graph",
