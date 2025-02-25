@@ -18,8 +18,8 @@ import {
   BarChart,
   CartesianGrid, LabelList, Pie, PieChart, RadialBar, RadialBarChart, Rectangle, XAxis
 } from "recharts"
-import {
 
+import {
   Box,
   FormControl,
   Grid,
@@ -29,7 +29,8 @@ import {
   Select,
   styled,
 } from "@mui/material";
-
+import { Button, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Chip, Tooltip, ChipProps, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react"
+import { Pencil, Trash2, Search, ChevronDown } from "lucide-react";
 
 //Lead//
 const chartConfig = {
@@ -106,21 +107,59 @@ const chartConfigDeal = {
 } satisfies ChartConfig;
 //Deal//
 
-
-
 interface Lead {
   _id: string;
+  companyName: string;
+  customerName: string;
+  contactNumber: string;
+  emailAddress: string;
+  address: string;
+  productName: string;
+  amount: string;
+  gstNumber: string;
   status: string;
-
+  date: string;
+  endDate: string;
+  notes: string;
+  isActive: string;
 }
+
 interface Invoice {
   _id: string;
+  companyName: string;
+  customerName: string;
+  contactNumber: string;
+  emailAddress: string;
+  address: string;
+  gstNumber: string;
+  productName: string;
+  amount: number;
+  discount: number;
+  gstRate: number;
   status: string;
+  date: Date;
+  endDate: Date;
+  totalWithoutGst: number;
+  totalWithGst: number;
+  paidAmount: number;
+  remainingAmount: number;
 }
 
 interface Deal {
   _id: string;
+  companyName: string;
+  customerName: string;
+  contactNumber: string;
+  emailAddress: string;
+  address: string;
+  productName: string;
+  amount: string;
+  gstNumber: string;
   status: string;
+  date: string;
+  endDate: string;
+  notes: string;
+  isActive: string;
 }
 
 
@@ -137,6 +176,43 @@ interface CategorizedDeals {
   [key: string]: Deal[];
 }
 
+
+//lead//
+const columns = [
+  { name: "COMPANY", uid: "companyName", sortable: true },
+  { name: "CUSTOMER", uid: "customerName", sortable: true },
+  { name: "CONTACT", uid: "contactNumber", sortable: true },
+  { name: "EMAIL", uid: "emailAddress", sortable: true },
+  { name: "ADDRESS", uid: "address", sortable: true },
+  { name: "PRODUCT", uid: "productName", sortable: true },
+  { name: "AMOUNT", uid: "amount", sortable: true },
+  { name: "GST", uid: "gstNumber", sortable: true },
+  { name: "STATUS", uid: "status", sortable: true },
+  { name: "DATE", uid: "date", sortable: true },
+  { name: "END DATE", uid: "endDate", sortable: true },
+  { name: "ACTION", uid: "actions", sortable: true }
+];
+
+//Invoice//
+const columnsInvoice = [
+  { name: "COMPANY", uid: "companyName", sortable: true },
+  { name: "CUSTOMER", uid: "customerName", sortable: true },
+  { name: "EMAIL", uid: "emailAddress", sortable: true },
+  { name: "PRODUCT", uid: "productName", sortable: true },
+];
+
+const columnsDeal = [
+  { name: "COMPANY", uid: "companyName", sortable: true },
+  { name: "CUSTOMER", uid: "customerName", sortable: true },
+  { name: "EMAIL", uid: "emailAddress", sortable: true },
+  { name: "PRODUCT", uid: "productName", sortable: true },
+];
+
+const INITIAL_VISIBLE_COLUMNS = ["companyName", "customerName", "emailAddress", "productName"];
+
+const INITIAL_VISIBLE_COLUMNS_INVOICE = ["companyName", "customerName", "emailAddress", "productName"];
+
+const INITIAL_VISIBLE_COLUMNS_DEAL = ["companyName", "customerName", "emailAddress", "productName"];
 
 //Lead//
 const chartData = {
@@ -177,17 +253,207 @@ const Item = styled(Paper)(({ theme }) => ({
   }),
 }));
 
+const getChartDimensions = () => {
+  // Return responsive dimensions based on window width
+  if (typeof window !== 'undefined') {
+    const width = Math.min(600, window.innerWidth - 40); // 40px for padding
+    const height = Math.min(400, width * 0.8);
+    return { width, height };
+  }
+  return { width: 600, height: 400 }; // Default dimensions
+};
+
 export default function Page() {
   const [selectedChart, setSelectedChart] = useState("Pie Chart");
   const [selectedChartInvoice, setSelectedChartInvoice] = useState("Pie Chart");
   const [selectedChartDeal, setSelectedChartDeal] = useState("Pie Chart");
 
+  const [filterValue, setFilterValue] = useState("");
+  const [filterValueInvoice, setFilterValueInvoice] = useState("");
+  const [filterValueDeal, setFilterValueDeal] = useState("");
+
+  const [statusFilter, setStatusFilter] = useState("all");
   const [categorizedLeads, setCategorizedLeads] = useState<CategorizedLeads>({});
   const [categorizedInvoices, setCategorizedInvoices] = useState<CategorizedInvoices>({});
   const [categorizedDeals, setCategorizedDeals] = useState<CategorizedDeals>({});
   const [loading, setLoading] = useState(true);
 
+  const [page, setPage] = useState(1);
+  const [pageInvoice, setPageInvoice] = useState(1);
+  const [pageDeal, setPageDeal] = useState(1);
 
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
+
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const hasSearchFilter = Boolean(filterValue);
+  const hasSearchFilterInvoice = Boolean(filterValueInvoice);
+  const hasSearchFilterDeal = Boolean(filterValueDeal);
+
+  const [selectedKeys, setSelectedKeys] = useState(new Set([]));
+  const [selectedKeysInvoice, setSelectedKeysInvoice] = useState(new Set([]));
+  const [selectedKeysDeal, setSelectedKeysDeal] = useState(new Set([]));
+
+  const [visibleColumns, setVisibleColumns] = useState(new Set(INITIAL_VISIBLE_COLUMNS));
+  const [visibleColumnsInvoice, setVisibleColumnsInvoice] = useState(new Set(INITIAL_VISIBLE_COLUMNS_INVOICE));
+  const [visibleColumnsDeal, setVisibleColumnsDeal] = useState(new Set(INITIAL_VISIBLE_COLUMNS_DEAL));
+  const [sortDescriptor, setSortDescriptor] = useState({
+    column: "companyName",
+    direction: "ascending",
+  });
+  const [sortDescriptorDeal, setSortDescriptorDeal] = useState({
+    column: "companyName",
+    direction: "ascending",
+  });
+
+  const filteredItems = React.useMemo(() => {
+    let filteredLeads = [...leads];
+
+
+    if (hasSearchFilter) {
+      filteredLeads = filteredLeads.filter((lead) => {
+        const searchableFields = {
+          companyName: lead.companyName,
+          customerName: lead.customerName,
+          emailAddress: lead.emailAddress,
+          productName: lead.productName,
+          status: lead.status
+        };
+
+        return Object.values(searchableFields).some(value =>
+          String(value || '').toLowerCase().includes(filterValue.toLowerCase())
+        );
+      });
+    }
+
+    if (statusFilter !== "all") {
+      filteredLeads = filteredLeads.filter((lead) =>
+        statusFilter === lead.status
+      );
+    }
+
+    return filteredLeads;
+  }, [leads, filterValue, statusFilter]);
+
+  const filteredItemsInvoice = React.useMemo(() => {
+    let filteredInvoices = [...invoices];
+
+
+    if (hasSearchFilterInvoice) {
+      filteredInvoices = filteredInvoices.filter((invoice) => {
+        const searchableFields = {
+          companyName: invoice.companyName,
+          customerName: invoice.customerName,
+          emailAddress: invoice.emailAddress,
+          productName: invoice.productName,
+          status: invoice.status
+        };
+
+        return Object.values(searchableFields).some(value =>
+          String(value || '').toLowerCase().includes(filterValueInvoice.toLowerCase())
+        );
+      });
+    }
+
+    if (statusFilter !== "all") {
+      filteredInvoices = filteredInvoices.filter((invoice) =>
+        statusFilter === invoice.status
+      );
+    }
+
+    return filteredInvoices;
+  }, [invoices, filterValueInvoice, statusFilter]);
+
+  const filteredItemsDeal = React.useMemo(() => {
+    let filteredDeals = [...deals];
+
+    if (hasSearchFilterDeal) {
+      filteredDeals = filteredDeals.filter((deal) => {
+        const searchableFields = {
+          companyName: deal.companyName,
+          customerName: deal.customerName,
+          emailAddress: deal.emailAddress,
+          productName: deal.productName,
+          status: deal.status
+        };
+
+        return Object.values(searchableFields).some(value =>
+          String(value || '').toLowerCase().includes(filterValueDeal.toLowerCase())
+        );
+      });
+    }
+
+    if (statusFilter !== "all") {
+      filteredDeals = filteredDeals.filter((deal) =>
+        statusFilter === deal.status
+      );
+    }
+
+    return filteredDeals;
+  }, [deals, filterValueDeal, statusFilter]);
+
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === "all") return columns;
+    return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
+  }, [visibleColumns]);
+
+  const headerColumnsInvoice = React.useMemo(() => {
+    if (visibleColumnsInvoice === "all") return columnsInvoice;
+    return columnsInvoice.filter((column) => Array.from(visibleColumnsInvoice).includes(column.uid));
+  }, [visibleColumnsInvoice]);
+
+  const headerColumnsDeal = React.useMemo(() => {
+    if (visibleColumnsDeal === "all") return columnsDeal;
+    return columnsDeal.filter((column) => Array.from(visibleColumnsDeal).includes(column.uid));
+  }, [visibleColumnsDeal]);
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage);
+
+  const pagesInvoice = Math.ceil(invoices.length / rowsPerPage);
+
+  const pagesDeal = Math.ceil(deals.length / rowsPerPage);
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return filteredItems.slice(start, end);
+  }, [page, filteredItems, rowsPerPage]);
+
+  const itemsInvoice = React.useMemo(() => {
+    const start = (pageInvoice - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return filteredItemsInvoice.slice(start, end);
+  }, [pageInvoice, filteredItemsInvoice, rowsPerPage]);
+
+  const itemsDeal = React.useMemo(() => {
+    const start = (pageDeal - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return filteredItemsDeal.slice(start, end);
+  }, [pageDeal, filteredItemsDeal, rowsPerPage]);
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof Lead];
+      const second = b[sortDescriptor.column as keyof Lead];
+      const cmp = first < second ? -1 : first > second ? 1 : 0;
+
+      return sortDescriptor.direction === "descending" ? -cmp : cmp;
+    });
+  }, [sortDescriptor, items]);
+
+  const sortedDeals = React.useMemo(() => {
+    return [...itemsDeal].sort((a, b) => {
+      const first = a[sortDescriptorDeal.column as keyof Deal];
+      const second = b[sortDescriptorDeal.column as keyof Deal];
+      const cmp = first < second ? -1 : first > second ? 1 : 0;
+
+      return sortDescriptorDeal.direction === "descending" ? -cmp : cmp;
+    });
+  }, [sortDescriptorDeal, itemsDeal]);
 
 
   //Lead//
@@ -202,6 +468,9 @@ export default function Page() {
           console.error('Invalid data format received:', result);
           return;
         }
+
+        // Set the leads data for the table
+        setLeads(result.data);
 
         // Categorize leads by status
         const categorized = result.data.reduce((acc: CategorizedLeads, lead: Lead) => {
@@ -237,6 +506,9 @@ export default function Page() {
           return;
         }
 
+        // Set the invoices data for the table
+        setInvoices(result.data);
+
         // Categorize invoices by status
         const categorized = result.data.reduce((acc: CategorizedInvoices, invoice: Invoice) => {
           if (!acc[invoice.status]) {
@@ -271,6 +543,9 @@ export default function Page() {
           return;
         }
 
+        // Set the deals data for the table
+        setDeals(result.data);
+
         // Categorize deals by status
         const categorized = result.data.reduce((acc: CategorizedDeals, deal: Deal) => {
           if (!acc[deal.status]) {
@@ -292,6 +567,18 @@ export default function Page() {
   }, []);
   //Deal//
 
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1);
+    }
+  }, [page, pages]);
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1);
+    }
+  }, [page]);
 
 
 
@@ -330,6 +617,8 @@ export default function Page() {
 
   //Lead//
   const renderChartLead = () => {
+    const { width, height } = getChartDimensions();
+
     if (loading) {
       return (
         <Card>
@@ -354,7 +643,7 @@ export default function Page() {
               config={chartConfig}
               className="mx-auto aspect-square max-h-[400px] [&_.recharts-text]:fill-background"
             >
-              <PieChart width={600} height={400}>
+              <PieChart width={width} height={height}>
                 <ChartTooltip
                   cursor={false}
                   content={<ChartTooltipContent hideLabel nameKey="browser" />}
@@ -388,7 +677,7 @@ export default function Page() {
               config={chartConfig}
               className="mx-auto aspect-square max-h-[400px] [&_.recharts-text]:fill-background"
             >
-              <PieChart width={600} height={400}>
+              <PieChart width={width} height={height}>
                 <ChartTooltip
                   cursor={false}
                   content={<ChartTooltipContent hideLabel nameKey="browser" />}
@@ -399,7 +688,7 @@ export default function Page() {
                   nameKey="browser"
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
+                  outerRadius={Math.min(width, height) / 4}
                   className="cursor-pointer"
                   style={{ color: "#FF7F3E" }}
                 />
@@ -426,13 +715,13 @@ export default function Page() {
               className="mx-auto aspect-square max-h-[400px]"
             >
               <RadialBarChart
-                width={600}
-                height={400}
+                width={width}
+                height={height}
                 data={dynamicChartData}
                 startAngle={-90}
                 endAngle={380}
-                innerRadius={30}
-                outerRadius={110}
+                innerRadius={Math.min(width, height) / 12}
+                outerRadius={Math.min(width, height) / 4}
                 cx="50%"
                 cy="50%"
               >
@@ -467,7 +756,7 @@ export default function Page() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig}>
-              <BarChart width={600} height={400} data={dynamicChartData}>
+              <BarChart width={width} height={height} data={dynamicChartData}>
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="browser"
@@ -510,6 +799,8 @@ export default function Page() {
 
   //Invoice//
   const renderChartInvoice = () => {
+    const { width, height } = getChartDimensions();
+
     if (loading) {
       return (
         <Card>
@@ -534,7 +825,7 @@ export default function Page() {
               config={chartConfigInvoice}
               className="mx-auto aspect-square max-h-[400px] [&_.recharts-text]:fill-background"
             >
-              <PieChart width={600} height={400}>
+              <PieChart width={width} height={height}>
                 <ChartTooltip
                   cursor={false}
                   content={<ChartTooltipContent hideLabel nameKey="browser" />}
@@ -568,7 +859,7 @@ export default function Page() {
               config={chartConfigInvoice}
               className="mx-auto aspect-square max-h-[400px] [&_.recharts-text]:fill-background"
             >
-              <PieChart width={600} height={400}>
+              <PieChart width={width} height={height}>
                 <ChartTooltip
                   cursor={false}
                   content={<ChartTooltipContent hideLabel nameKey="browser" />}
@@ -579,7 +870,7 @@ export default function Page() {
                   nameKey="browser"
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
+                  outerRadius={Math.min(width, height) / 4}
                   className="cursor-pointer"
                   style={{ color: "#FF7F3E" }}
                 />
@@ -606,13 +897,13 @@ export default function Page() {
               className="mx-auto aspect-square max-h-[400px]"
             >
               <RadialBarChart
-                width={600}
-                height={400}
+                width={width}
+                height={height}
                 data={dynamicChartDataInvoice}
                 startAngle={-90}
                 endAngle={380}
-                innerRadius={30}
-                outerRadius={110}
+                innerRadius={Math.min(width, height) / 12}
+                outerRadius={Math.min(width, height) / 4}
                 cx="50%"
                 cy="50%"
               >
@@ -647,7 +938,7 @@ export default function Page() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfigInvoice}>
-              <BarChart width={600} height={400} data={dynamicChartDataInvoice}>
+              <BarChart width={width} height={height} data={dynamicChartDataInvoice}>
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="browser"
@@ -690,6 +981,8 @@ export default function Page() {
 
   //Deal//
   const renderChartDeal = () => {
+    const { width, height } = getChartDimensions();
+
     if (loading) {
       return (
         <Card>
@@ -714,7 +1007,7 @@ export default function Page() {
               config={chartConfigDeal}
               className="mx-auto aspect-square max-h-[400px] [&_.recharts-text]:fill-background"
             >
-              <PieChart width={600} height={400}>
+              <PieChart width={width} height={height}>
                 <ChartTooltip
                   cursor={false}
                   content={<ChartTooltipContent hideLabel nameKey="browser" />}
@@ -748,7 +1041,7 @@ export default function Page() {
               config={chartConfigDeal}
               className="mx-auto aspect-square max-h-[400px] [&_.recharts-text]:fill-background"
             >
-              <PieChart width={600} height={400}>
+              <PieChart width={width} height={height}>
                 <ChartTooltip
                   cursor={false}
                   content={<ChartTooltipContent hideLabel nameKey="browser" />}
@@ -759,7 +1052,7 @@ export default function Page() {
                   nameKey="browser"
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
+                  outerRadius={Math.min(width, height) / 4}
                   className="cursor-pointer"
                   style={{ color: "#FF7F3E" }}
                 />
@@ -786,13 +1079,13 @@ export default function Page() {
               className="mx-auto aspect-square max-h-[400px]"
             >
               <RadialBarChart
-                width={600}
-                height={400}
+                width={width}
+                height={height}
                 data={dynamicChartDataDeal}
                 startAngle={-90}
                 endAngle={380}
-                innerRadius={30}
-                outerRadius={110}
+                innerRadius={Math.min(width, height) / 12}
+                outerRadius={Math.min(width, height) / 4}
                 cx="50%"
                 cy="50%"
               >
@@ -827,7 +1120,7 @@ export default function Page() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfigDeal}>
-              <BarChart width={600} height={400} data={dynamicChartDataDeal}>
+              <BarChart width={width} height={height} data={dynamicChartDataDeal}>
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="browser"
@@ -869,6 +1162,254 @@ export default function Page() {
   //Deal//
 
 
+  //lead//
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="py-2 px-2 flex justify-between items-center">
+        <span className="w-[30%] text-small text-default-400">
+          {selectedKeys === "all"
+            ? "All items selected"
+            : `${selectedKeys.size} of ${filteredItems.length} selected`}
+        </span>
+        <Pagination
+          isCompact
+          // showControls
+          showShadow
+          color="success"
+          page={page}
+          total={pages}
+          onChange={setPage}
+          classNames={{
+            // base: "gap-2 rounded-2xl shadow-lg p-2 dark:bg-default-100",
+            cursor: "bg-[hsl(339.92deg_91.04%_52.35%)] shadow-md",
+            item: "data-[active=true]:bg-[hsl(339.92deg_91.04%_52.35%)] data-[active=true]:text-white rounded-lg",
+          }}
+        />
+
+        <div className="rounded-lg bg-default-100 hover:bg-default-200 hidden sm:flex w-[30%] justify-end gap-2">
+          <Button className="bg-[hsl(339.92deg_91.04%_52.35%)] rounded-lg" isDisabled={pages === 1} size="sm" variant="flat" onPress={onPreviousPage}>
+            Previous
+          </Button>
+          <Button className="bg-[hsl(339.92deg_91.04%_52.35%)] rounded-lg" isDisabled={pages === 1} size="sm" variant="flat" onPress={onNextPage}>
+            Next
+          </Button>
+        </div>
+      </div>
+    );
+  }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
+
+  //Invoice//
+  const bottomContentInvoice = React.useMemo(() => {
+    return (
+      <div className="py-2 px-2 flex justify-between items-center">
+        <span className="w-[30%] text-small text-default-400">
+          {selectedKeysInvoice === "all"
+            ? "All items selected"
+            : `${selectedKeysInvoice.size} of ${filteredItemsInvoice.length} selected`}
+        </span>
+        <Pagination
+          isCompact
+          // showControls
+          showShadow
+          color="success"
+          page={pageInvoice}
+          total={pagesInvoice}
+          onChange={setPageInvoice}
+          classNames={{
+            // base: "gap-2 rounded-2xl shadow-lg p-2 dark:bg-default-100",
+            cursor: "bg-[hsl(339.92deg_91.04%_52.35%)] shadow-md",
+            item: "data-[active=true]:bg-[hsl(339.92deg_91.04%_52.35%)] data-[active=true]:text-white rounded-lg",
+          }}
+        />
+
+        <div className="rounded-lg bg-default-100 hover:bg-default-200 hidden sm:flex w-[30%] justify-end gap-2">
+          <Button className="bg-[hsl(339.92deg_91.04%_52.35%)] rounded-lg" isDisabled={pagesInvoice === 1} size="sm" variant="flat" onPress={onPreviousPage}>
+            Previous
+          </Button>
+          <Button className="bg-[hsl(339.92deg_91.04%_52.35%)] rounded-lg" isDisabled={pagesInvoice === 1} size="sm" variant="flat" onPress={onNextPage}>
+            Next
+          </Button>
+        </div>
+      </div>
+    );
+  }, [selectedKeysInvoice, itemsInvoice.length, pageInvoice, pagesInvoice, hasSearchFilterInvoice]);
+
+
+  const bottomContentDeal = React.useMemo(() => {
+    return (
+      <div className="py-2 px-2 flex justify-between items-center">
+        <span className="w-[30%] text-small text-default-400">
+          {selectedKeysDeal === "all"
+            ? "All items selected"
+            : `${selectedKeysDeal.size} of ${filteredItemsDeal.length} selected`}
+        </span>
+        <Pagination
+          isCompact
+          showShadow
+          color="success"
+          page={pageDeal}
+          total={pagesDeal}
+          onChange={setPageDeal}
+          classNames={{
+            cursor: "bg-[hsl(339.92deg_91.04%_52.35%)] shadow-md",
+            item: "data-[active=true]:bg-[hsl(339.92deg_91.04%_52.35%)] data-[active=true]:text-white rounded-lg",
+          }}
+        />
+
+        <div className="rounded-lg bg-default-100 hover:bg-default-200 hidden sm:flex w-[30%] justify-end gap-2">
+          <Button className="bg-[hsl(339.92deg_91.04%_52.35%)] rounded-lg" isDisabled={pagesDeal === 1} size="sm" variant="flat" onPress={onPreviousPage}>
+            Previous
+          </Button>
+          <Button className="bg-[hsl(339.92deg_91.04%_52.35%)] rounded-lg" isDisabled={pagesDeal === 1} size="sm" variant="flat" onPress={onNextPage}>
+            Next
+          </Button>
+        </div>
+      </div>
+    );
+  }, [selectedKeysDeal, deals.length, pageDeal, pagesDeal, hasSearchFilterDeal]);
+
+  const renderCell = React.useCallback((lead: Lead, columnKey: React.Key) => {
+    const cellValue = lead[columnKey as keyof Lead];
+
+    switch (columnKey) {
+      case "companyName":
+      case "customerName":
+      case "contactNumber":
+      case "emailAddress":
+      case "productName":
+      case "amount":
+      case "gstNumber":
+      case "date":
+      case "endDate":
+      case "notes":
+        return cellValue;
+      case "status":
+        return (
+          <Chip
+            className="capitalize"
+            color={statusColorMap[lead.status]}
+            size="sm"
+            variant="flat"
+          >
+            {cellValue}
+          </Chip>
+        );
+      case "actions":
+        return (
+          <div className="relative flex items-center gap-2">
+            <Tooltip content="Edit lead">
+              <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
+                <Pencil size={20} />
+              </span>
+            </Tooltip>
+            <Tooltip color="danger" content="Delete lead">
+              <span className="text-lg text-danger cursor-pointer active:opacity-50">
+                <Trash2 size={20} />
+              </span>
+            </Tooltip>
+          </div>
+        );
+      default:
+        return cellValue;
+    }
+  }, []);
+
+  const renderCellInvoice = React.useCallback((invoice: Invoice, columnKey: React.Key) => {
+    const cellValue = invoice[columnKey as keyof Invoice];
+
+    switch (columnKey) {
+      case "companyName":
+      case "customerName":
+      case "emailAddress":
+      case "productName":
+      case "amount":
+      case "gstNumber":
+      case "date":
+      case "endDate":
+      case "notes":
+        return cellValue;
+      case "status":
+        return (
+          <Chip
+            className="capitalize"
+            color={statusColorMap[invoice.status]}
+            size="sm"
+            variant="flat"
+          >
+            {cellValue}
+          </Chip>
+        );
+      case "actions":
+        return (
+          <div className="relative flex items-center gap-2">
+            <Tooltip content="Edit lead">
+              <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
+                <Pencil size={20} />
+              </span>
+            </Tooltip>
+            <Tooltip color="danger" content="Delete lead">
+              <span className="text-lg text-danger cursor-pointer active:opacity-50">
+                <Trash2 size={20} />
+              </span>
+            </Tooltip>
+          </div>
+        );
+      default:
+        return cellValue;
+    }
+  }, []);
+
+  const renderCellDeal = React.useCallback((deal: Deal, columnKey: React.Key) => {
+    const cellValue = deal[columnKey as keyof Deal];
+
+    switch (columnKey) {
+      case "companyName":
+      case "customerName":
+      case "contactNumber":
+      case "emailAddress":
+      case "productName":
+      case "amount":
+      case "gstNumber":
+      case "date":
+      case "endDate":
+      case "notes":
+        return cellValue;
+      case "status":
+        return (
+          <Chip
+            className="capitalize"
+            color={statusColorMap[deal.status]}
+            size="sm"
+            variant="flat"
+          >
+            {cellValue}
+          </Chip>
+        );
+      case "actions":
+        return (
+          <div className="relative flex items-center gap-2">
+            <Tooltip content="Edit deal">
+              <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
+                <Pencil size={20} />
+              </span>
+            </Tooltip>
+            <Tooltip color="danger" content="Delete deal">
+              <span className="text-lg text-danger cursor-pointer active:opacity-50">
+                <Trash2 size={20} />
+              </span>
+            </Tooltip>
+          </div>
+        );
+      default:
+        return cellValue;
+    }
+  }, []);
+
+  const statusColorMap: Record<string, ChipProps["color"]> = {
+    active: "success",
+    paused: "danger",
+    vacation: "warning",
+  };
 
   return (
     <SidebarProvider>
@@ -897,7 +1438,7 @@ export default function Page() {
         <Box sx={{ width: '100%' }}>
           <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
             {/* Lead */}
-            <Grid item xs={4}>
+            <Grid item xs={12} md={6} lg={4}>
               <Item>
                 <div>
                   <FormControl fullWidth>
@@ -922,7 +1463,7 @@ export default function Page() {
             {/* End Lead */}
 
             {/* Invoice */}
-            <Grid item xs={4}>
+            <Grid item xs={12} md={6} lg={4}>
               <Item>
                 <div>
                   <FormControl fullWidth>
@@ -947,7 +1488,7 @@ export default function Page() {
             {/* End Invoice */}
 
             {/* Deal */}
-            <Grid item xs={4}>
+            <Grid item xs={12} md={6} lg={4}>
               <Item>
                 <div>
                   <FormControl fullWidth>
@@ -971,23 +1512,269 @@ export default function Page() {
             </Grid>
             {/* End Deal */}
 
-            <Grid item xs={6}>
-              <Item>4</Item>
+            {/* Lead Table */}
+            <Grid item xs={12} lg={6}>
+              <Item>
+                <div className="flex justify-between items-center gap-3">
+                  <Input
+                    isClearable
+                    className="w-full sm:max-w-[44%]"
+                    placeholder="Search by name, email, product..."
+                    startContent={<Search size={20} />}
+                    value={filterValue}
+                    onClear={() => setFilterValue("")}
+                    onValueChange={setFilterValue}
+                  />
+                </div>
+                <Table
+                  isHeaderSticky
+                  aria-label="Leads table with custom cells, pagination and sorting"
+                  bottomContent={bottomContent}
+                  bottomContentPlacement="outside"
+                  classNames={{
+                    wrapper: "max-h-[382px]",
+                  }}
+                  selectedKeys={selectedKeys}
+                  selectionMode="multiple"
+                  sortDescriptor={sortDescriptor}
+                  onSelectionChange={setSelectedKeys}
+                  onSortChange={setSortDescriptor}
+                >
+                  <TableHeader columns={headerColumns}>
+                    {(column) => (
+                      <TableColumn
+                        key={column.uid}
+                        align={column.uid === "actions" ? "center" : "start"}
+                        allowsSorting={column.sortable}
+                      >
+                        {column.name}
+                      </TableColumn>
+                    )}
+                  </TableHeader>
+                  <TableBody emptyContent={"No leads found"} items={sortedItems}>
+                    {(item) => (
+                      <TableRow key={item._id}>
+                        {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </Item>
             </Grid>
-            <Grid item xs={6}>
-              <Item>5</Item>
+
+            {/* Invoice Table */}
+            <Grid item xs={12} sm={6} md={6} lg={6}>
+              <Item>
+                <div className="flex justify-between items-center gap-3">
+                  <Input
+                    isClearable
+                    className="w-full sm:max-w-[44%]"
+                    placeholder="Search by name, email, product..."
+                    startContent={<Search size={20} />}
+                    value={filterValueInvoice}
+                    onClear={() => setFilterValueInvoice("")}
+                    onValueChange={setFilterValueInvoice}
+                  />
+                </div>
+                <Table
+                  isHeaderSticky
+                  aria-label="Invoices table with custom cells, pagination and sorting"
+                  bottomContent={bottomContentInvoice}
+                  bottomContentPlacement="outside"
+                  classNames={{
+                    wrapper: "max-h-[382px]",
+                  }}
+                  selectedKeys={selectedKeysInvoice}
+                  selectionMode="multiple"
+                  topContentPlacement="outside"
+                >
+                  <TableHeader columns={columnsInvoice}>
+                    {(column) => (
+                      <TableColumn
+                        key={column.uid}
+                        align={column.uid === "actions" ? "center" : "start"}
+                        allowsSorting={column.sortable}
+                      >
+                        {column.name}
+                      </TableColumn>
+                    )}
+                  </TableHeader>
+                  <TableBody emptyContent={"No invoices found"} items={itemsInvoice}>
+                    {(item) => (
+                      <TableRow key={item._id}>
+                        {(columnKey) => <TableCell>{renderCellInvoice(item, columnKey)}</TableCell>}
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </Item>
             </Grid>
-            <Grid item xs={6}>
-              <Item>6</Item>
+
+            {/* Deal Table */}
+            <Grid item xs={12} sm={6} md={6} lg={6}>
+              <Item>
+                <div className="flex justify-between items-center gap-3">
+                  <Input
+                    isClearable
+                    className="w-full sm:max-w-[44%]"
+                    placeholder="Search by name, email, product..."
+                    startContent={<Search size={20} />}
+                    value={filterValueDeal}
+                    onClear={() => setFilterValueDeal("")}
+                    onValueChange={setFilterValueDeal}
+                  />
+                </div>
+                <Table
+                  isHeaderSticky
+                  aria-label="Deals table with custom cells, pagination and sorting"
+                  bottomContent={bottomContentDeal}
+                  bottomContentPlacement="outside"
+                  classNames={{
+                    wrapper: "max-h-[382px]",
+                  }}
+                  selectedKeys={selectedKeysDeal}
+                  selectionMode="multiple"
+                  sortDescriptor={sortDescriptorDeal}
+                  onSortChange={setSortDescriptorDeal}
+                  topContentPlacement="outside"
+                >
+                  <TableHeader columns={columnsDeal}>
+                    {(column) => (
+                      <TableColumn
+                        key={column.uid}
+                        align={column.uid === "actions" ? "center" : "start"}
+                        allowsSorting={column.sortable}
+                      >
+                        {column.name}
+                      </TableColumn>
+                    )}
+                  </TableHeader>
+                  <TableBody emptyContent={"No deals found"} items={sortedDeals}>
+                    {(item) => (
+                      <TableRow key={item._id}>
+                        {(columnKey) => <TableCell>{renderCellDeal(item, columnKey)}</TableCell>}
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </Item>
             </Grid>
-            <Grid item xs={6}>
-              <Item>7</Item>
+
+            {/* Task Table */}
+            <Grid item xs={12} sm={6} md={6} lg={6}>
+              <Item>
+                <Item>
+                  <Table
+                    isHeaderSticky
+                    aria-label="Invoices table with custom cells, pagination and sorting"
+                    bottomContent={bottomContent}
+                    bottomContentPlacement="outside"
+                    classNames={{
+                      wrapper: "max-h-[382px]",
+                    }}
+                    selectedKeys={selectedKeys}
+                    selectionMode="multiple"
+                    topContentPlacement="outside"
+                  >
+                    <TableHeader columns={headerColumns}>
+                      {(column) => (
+                        <TableColumn
+                          key={column.uid}
+                          align={column.uid === "actions" ? "center" : "start"}
+                          allowsSorting={column.sortable}
+                        >
+                          {column.name}
+                        </TableColumn>
+                      )}
+                    </TableHeader>
+                    <TableBody emptyContent={"No invoices found"} items={sortedItems}>
+                      {(item) => (
+                        <TableRow key={item._id}>
+                          {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </Item>
+              </Item>
             </Grid>
-            <Grid item xs={6}>
-              <Item>8</Item>
+
+            {/* Remainder Table */}
+            <Grid item xs={12} sm={6} md={6} lg={6}>
+              <Item>
+                <Item>
+                  <Table
+                    isHeaderSticky
+                    aria-label="Invoices table with custom cells, pagination and sorting"
+                    bottomContent={bottomContent}
+                    bottomContentPlacement="outside"
+                    classNames={{
+                      wrapper: "max-h-[382px]",
+                    }}
+                    selectedKeys={selectedKeys}
+                    selectionMode="multiple"
+                    topContentPlacement="outside"
+                  >
+                    <TableHeader columns={headerColumns}>
+                      {(column) => (
+                        <TableColumn
+                          key={column.uid}
+                          align={column.uid === "actions" ? "center" : "start"}
+                          allowsSorting={column.sortable}
+                        >
+                          {column.name}
+                        </TableColumn>
+                      )}
+                    </TableHeader>
+                    <TableBody emptyContent={"No invoices found"} items={sortedItems}>
+                      {(item) => (
+                        <TableRow key={item._id}>
+                          {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </Item>
+              </Item>
             </Grid>
-            <Grid item xs={6}>
-              <Item>9</Item>
+
+            {/* Scedule Table */}
+            <Grid item xs={12} sm={6} md={6} lg={6}>
+              <Item>
+                <Item>
+                  <Table
+                    isHeaderSticky
+                    aria-label="Invoices table with custom cells, pagination and sorting"
+                    bottomContent={bottomContent}
+                    bottomContentPlacement="outside"
+                    classNames={{
+                      wrapper: "max-h-[382px]",
+                    }}
+                    selectedKeys={selectedKeys}
+                    selectionMode="multiple"
+                    topContentPlacement="outside"
+                  >
+                    <TableHeader columns={headerColumns}>
+                      {(column) => (
+                        <TableColumn
+                          key={column.uid}
+                          align={column.uid === "actions" ? "center" : "start"}
+                          allowsSorting={column.sortable}
+                        >
+                          {column.name}
+                        </TableColumn>
+                      )}
+                    </TableHeader>
+                    <TableBody emptyContent={"No invoices found"} items={sortedItems}>
+                      {(item) => (
+                        <TableRow key={item._id}>
+                          {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </Item>
+              </Item>
             </Grid>
           </Grid>
         </Box>
