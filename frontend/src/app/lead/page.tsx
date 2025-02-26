@@ -77,8 +77,8 @@ const formSchema = z.object({
     amount: z.number().positive({ message: "Amount must be positive." }),
     gstNumber: z.string().min(1, { message: "GST Number is required." }),
     status: z.enum(["New", "Discussion", "Demo", "Proposal", "Decided"]),
-    date: z.date().optional(),
-    endDate: z.date().optional(),
+    date: z.date(),
+    endDate: z.date(),
     notes: z.string().optional(),
     isActive: z.boolean(),
 })
@@ -169,7 +169,7 @@ export default function LeadPage() {
             gstNumber: "",
             status: "New",
             date: new Date(),
-            endDate: undefined,
+            endDate: new Date(),
             notes: "",
             isActive: true,
         },
@@ -246,8 +246,8 @@ export default function LeadPage() {
             amount: parseFloat(lead.amount),
             gstNumber: lead.gstNumber,
             status: lead.status as "New" | "Discussion" | "Demo" | "Proposal" | "Decided",
-            date: lead.date ? new Date(lead.date) : undefined,
-            endDate: lead.endDate ? new Date(lead.endDate) : undefined,
+            date: lead.date ? new Date(lead.date) : new Date(),
+            endDate: lead.endDate ? new Date(lead.endDate) : new Date(),
             notes: lead.notes || "",
             isActive: lead.isActive === "true",
         });
@@ -752,7 +752,6 @@ export default function LeadPage() {
                                                 </FormItem>
                                             )}
                                         />
-
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -762,28 +761,9 @@ export default function LeadPage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Start Date</FormLabel>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button
-                                                                    variant={"outline"}
-                                                                    className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                                                                >
-                                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </FormControl>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0" align="start">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={field.value}
-                                                                onSelect={field.onChange}
-                                                                disabled={(date) => date > new Date()}
-                                                                initialFocus
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
+                                                    <FormControl>
+                                                        <Input type="date" {...field} />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -795,28 +775,9 @@ export default function LeadPage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>End Date</FormLabel>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button
-                                                                    variant={"outline"}
-                                                                    className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                                                                >
-                                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </FormControl>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0" align="start">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={field.value}
-                                                                onSelect={field.onChange}
-                                                                disabled={(date) => date < new Date()}
-                                                                initialFocus
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
+                                                    <FormControl>
+                                                        <Input type="date" {...field} />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -1023,28 +984,9 @@ export default function LeadPage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Start Date</FormLabel>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button
-                                                                    variant={"outline"}
-                                                                    className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                                                                >
-                                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </FormControl>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0" align="start">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={field.value}
-                                                                onSelect={field.onChange}
-                                                                disabled={(date) => date > new Date()}
-                                                                initialFocus
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
+                                                    <FormControl>
+                                                        <Input type="date" {...field} />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -1056,28 +998,9 @@ export default function LeadPage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>End Date</FormLabel>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button
-                                                                    variant={"outline"}
-                                                                    className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                                                                >
-                                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </FormControl>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0" align="start">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={field.value}
-                                                                onSelect={field.onChange}
-                                                                disabled={(date) => date < new Date()}
-                                                                initialFocus
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
+                                                    <FormControl>
+                                                        <Input type="date" {...field} />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}

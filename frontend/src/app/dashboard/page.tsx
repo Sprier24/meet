@@ -29,8 +29,8 @@ import {
   Select,
   styled,
 } from "@mui/material";
-import { Button, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Chip, Tooltip, ChipProps, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react"
-import { Pencil, Trash2, Search, ChevronDown } from "lucide-react";
+import { Button, Pagination, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Chip, Tooltip, ChipProps, Input } from "@heroui/react"
+import { Pencil, Trash2, Search } from "lucide-react";
 
 //Lead//
 const chartConfig = {
@@ -162,6 +162,19 @@ interface Deal {
   isActive: string;
 }
 
+interface Task {
+  _id: string;
+  subject: string;
+  relatedTo: string;
+  name: string;
+  assigned: string;
+  taskDate: string;
+  dueDate: string;
+  status: "Pending" | "Resolved" | "In Progress";
+  priority: "High" | "Medium" | "Low";
+  isActive: boolean;
+}
+
 
 
 interface CategorizedLeads {
@@ -174,6 +187,10 @@ interface CategorizedInvoices {
 
 interface CategorizedDeals {
   [key: string]: Deal[];
+}
+
+interface CategorizedTasks {
+  [key: string]: Task[];
 }
 
 
@@ -208,11 +225,20 @@ const columnsDeal = [
   { name: "PRODUCT", uid: "productName", sortable: true },
 ];
 
+const columnsTask = [
+  { name: "SUBJECT", uid: "subject", sortable: true },
+  { name: "RELETED TO", uid: "relatedTo", sortable: true },
+  { name: "CUSTOMER", uid: "name", sortable: true },
+  { name: "STATUS", uid: "status", sortable: true },
+]
+
 const INITIAL_VISIBLE_COLUMNS = ["companyName", "customerName", "emailAddress", "productName"];
 
 const INITIAL_VISIBLE_COLUMNS_INVOICE = ["companyName", "customerName", "emailAddress", "productName"];
 
 const INITIAL_VISIBLE_COLUMNS_DEAL = ["companyName", "customerName", "emailAddress", "productName"];
+
+const INITIAL_VISIBLE_COLUMNS_TASK = ["subject", "relatedTo", "name", "status"];
 
 //Lead//
 const chartData = {
@@ -268,42 +294,56 @@ export default function Page() {
   const [selectedChartInvoice, setSelectedChartInvoice] = useState("Pie Chart");
   const [selectedChartDeal, setSelectedChartDeal] = useState("Pie Chart");
 
+
   const [filterValue, setFilterValue] = useState("");
   const [filterValueInvoice, setFilterValueInvoice] = useState("");
   const [filterValueDeal, setFilterValueDeal] = useState("");
+  const [filterValueTask, setFilterValueTask] = useState("");
 
   const [statusFilter, setStatusFilter] = useState("all");
   const [categorizedLeads, setCategorizedLeads] = useState<CategorizedLeads>({});
   const [categorizedInvoices, setCategorizedInvoices] = useState<CategorizedInvoices>({});
   const [categorizedDeals, setCategorizedDeals] = useState<CategorizedDeals>({});
+  const [categorizedTasks, setCategorizedTasks] = useState<CategorizedTasks>({});
   const [loading, setLoading] = useState(true);
 
   const [page, setPage] = useState(1);
   const [pageInvoice, setPageInvoice] = useState(1);
   const [pageDeal, setPageDeal] = useState(1);
+  const [pageTask, setPageTask] = useState(1);
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const hasSearchFilter = Boolean(filterValue);
   const hasSearchFilterInvoice = Boolean(filterValueInvoice);
   const hasSearchFilterDeal = Boolean(filterValueDeal);
+  const hasSearchFilterTask = Boolean(filterValueTask);
 
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
   const [selectedKeysInvoice, setSelectedKeysInvoice] = useState(new Set([]));
   const [selectedKeysDeal, setSelectedKeysDeal] = useState(new Set([]));
+  const [selectedKeysTask, setSelectedKeysTask] = useState(new Set([]));
 
   const [visibleColumns, setVisibleColumns] = useState(new Set(INITIAL_VISIBLE_COLUMNS));
   const [visibleColumnsInvoice, setVisibleColumnsInvoice] = useState(new Set(INITIAL_VISIBLE_COLUMNS_INVOICE));
   const [visibleColumnsDeal, setVisibleColumnsDeal] = useState(new Set(INITIAL_VISIBLE_COLUMNS_DEAL));
+  const [visibleColumnsTask, setVisibleColumnsTask] = useState(new Set(INITIAL_VISIBLE_COLUMNS_TASK));
   const [sortDescriptor, setSortDescriptor] = useState({
     column: "companyName",
     direction: "ascending",
   });
+
   const [sortDescriptorDeal, setSortDescriptorDeal] = useState({
     column: "companyName",
+    direction: "ascending",
+  });
+
+  const [sortDescriptorTask, setSortDescriptorTask] = useState({
+    column: "subject",
     direction: "ascending",
   });
 
@@ -393,26 +433,50 @@ export default function Page() {
     return filteredDeals;
   }, [deals, filterValueDeal, statusFilter]);
 
+  const filteredItemsTask = React.useMemo(() => {
+    let filteredTasks = [...tasks];
+
+    if (hasSearchFilterTask) {
+      filteredTasks = filteredTasks.filter((task) => {
+        const searchableFields = {
+          subject: task.subject,
+          relatedTo: task.relatedTo,
+          name: task.name,
+          assigned: task.assigned,
+          taskDate: task.taskDate,
+          dueDate: task.dueDate,
+          status: task.status,
+          priority: task.priority,
+          isActive: task.isActive,
+        };
+
+        return Object.values(searchableFields).some(value =>
+          String(value || '').toLowerCase().includes(filterValueTask.toLowerCase())
+        );
+      });
+    }
+
+    if (statusFilter !== "all") {
+      filteredTasks = filteredTasks.filter((task) =>
+        statusFilter === task.status
+      );
+    }
+
+    return filteredTasks;
+  }, [tasks, filterValueTask, statusFilter]);
+
   const headerColumns = React.useMemo(() => {
     if (visibleColumns === "all") return columns;
     return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
   }, [visibleColumns]);
-
-  const headerColumnsInvoice = React.useMemo(() => {
-    if (visibleColumnsInvoice === "all") return columnsInvoice;
-    return columnsInvoice.filter((column) => Array.from(visibleColumnsInvoice).includes(column.uid));
-  }, [visibleColumnsInvoice]);
-
-  const headerColumnsDeal = React.useMemo(() => {
-    if (visibleColumnsDeal === "all") return columnsDeal;
-    return columnsDeal.filter((column) => Array.from(visibleColumnsDeal).includes(column.uid));
-  }, [visibleColumnsDeal]);
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage);
 
   const pagesInvoice = Math.ceil(invoices.length / rowsPerPage);
 
   const pagesDeal = Math.ceil(deals.length / rowsPerPage);
+
+  const pagesTask = Math.ceil(tasks.length / rowsPerPage);
 
   const items = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -435,6 +499,13 @@ export default function Page() {
     return filteredItemsDeal.slice(start, end);
   }, [pageDeal, filteredItemsDeal, rowsPerPage]);
 
+  const itemsTask = React.useMemo(() => {
+    const start = (pageTask - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return filteredItemsTask.slice(start, end);
+  }, [pageTask, filteredItemsTask, rowsPerPage]);
+
   const sortedItems = React.useMemo(() => {
     return [...items].sort((a, b) => {
       const first = a[sortDescriptor.column as keyof Lead];
@@ -455,6 +526,15 @@ export default function Page() {
     });
   }, [sortDescriptorDeal, itemsDeal]);
 
+  const sortedTasks = React.useMemo(() => {
+    return [...itemsTask].sort((a, b) => {
+      const first = a[sortDescriptorTask.column as keyof Task];
+      const second = b[sortDescriptorTask.column as keyof Task];
+      const cmp = first < second ? -1 : first > second ? 1 : 0;
+
+      return sortDescriptorTask.direction === "descending" ? -cmp : cmp;
+    });
+  }, [sortDescriptorTask, itemsTask]);
 
   //Lead//
   useEffect(() => {
@@ -566,6 +646,40 @@ export default function Page() {
     fetchDeals();
   }, []);
   //Deal//
+
+  //Task//
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/task/getAllTasks');
+        const result = await response.json();
+
+        // Check if result is an object with data property
+        if (!result || !Array.isArray(result.data)) {
+          console.error('Invalid data format received:', result);
+          return;
+        }
+
+        // Set the tasks data for the table
+        setTasks(result.data);
+
+        // Categorize tasks by status
+        const categorized = result.data.reduce((acc: CategorizedTasks, task: Task) => {
+          if (!acc[task.status]) {
+            acc[task.status] = [];
+          }
+          acc[task.status].push(task);
+          return acc;
+        }, {} as CategorizedTasks);
+
+        setCategorizedTasks(categorized);
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+      }
+    };
+
+    fetchTasks();
+  }, []);
 
 
   const onNextPage = React.useCallback(() => {
@@ -1234,7 +1348,7 @@ export default function Page() {
     );
   }, [selectedKeysInvoice, itemsInvoice.length, pageInvoice, pagesInvoice, hasSearchFilterInvoice]);
 
-
+  //Deal//
   const bottomContentDeal = React.useMemo(() => {
     return (
       <div className="py-2 px-2 flex justify-between items-center">
@@ -1267,6 +1381,40 @@ export default function Page() {
       </div>
     );
   }, [selectedKeysDeal, deals.length, pageDeal, pagesDeal, hasSearchFilterDeal]);
+
+  //Task//
+  const bottomContentTask = React.useMemo(() => {
+    return (
+      <div className="py-2 px-2 flex justify-between items-center">
+        <span className="w-[30%] text-small text-default-400">
+          {selectedKeysTask === "all"
+            ? "All items selected"
+            : `${selectedKeysTask.size} of ${filteredItemsTask.length} selected`}
+        </span>
+        <Pagination
+          isCompact
+          showShadow
+          color="success"
+          page={pageTask}
+          total={pagesTask}
+          onChange={setPageTask}
+          classNames={{
+            cursor: "bg-[hsl(339.92deg_91.04%_52.35%)] shadow-md",
+            item: "data-[active=true]:bg-[hsl(339.92deg_91.04%_52.35%)] data-[active=true]:text-white rounded-lg",
+          }}
+        />
+
+        <div className="rounded-lg bg-default-100 hover:bg-default-200 hidden sm:flex w-[30%] justify-end gap-2">
+          <Button className="bg-[hsl(339.92deg_91.04%_52.35%)] rounded-lg" isDisabled={pagesTask === 1} size="sm" variant="flat" onPress={onPreviousPage}>
+            Previous
+          </Button>
+          <Button className="bg-[hsl(339.92deg_91.04%_52.35%)] rounded-lg" isDisabled={pagesTask === 1} size="sm" variant="flat" onPress={onNextPage}>
+            Next
+          </Button>
+        </div>
+      </div>
+    );
+  }, [selectedKeysTask, tasks.length, pageTask, pagesTask, hasSearchFilterTask]);
 
   const renderCell = React.useCallback((lead: Lead, columnKey: React.Key) => {
     const cellValue = lead[columnKey as keyof Lead];
@@ -1405,11 +1553,53 @@ export default function Page() {
     }
   }, []);
 
-  const statusColorMap: Record<string, ChipProps["color"]> = {
-    active: "success",
-    paused: "danger",
-    vacation: "warning",
-  };
+  const renderCellTask = React.useCallback((task: Task, columnKey: React.Key) => {
+    const cellValue = task[columnKey as keyof Task];
+
+    switch (columnKey) {
+      case "subject":
+      case "relatedTo":
+      case "name":
+      case "assigned":
+      case "taskDate":
+      case "dueDate":
+      case "status":
+      case "priority":
+      case "isActive":
+        return cellValue;
+      case "status":
+        return (
+          <Chip
+            className="capitalize"
+            color={statusColorMap[task.status]}
+            size="sm"
+            variant="flat"
+          >
+            {cellValue}
+          </Chip>
+        );
+      case "actions":
+        return (
+          <div className="relative flex items-center gap-2">
+            <Tooltip content="Edit task">
+              <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
+                <Pencil size={20} />
+              </span>
+            </Tooltip>
+            <Tooltip color="danger" content="Delete task">
+              <span className="text-lg text-danger cursor-pointer active:opacity-50">
+                <Trash2 size={20} />
+              </span>
+            </Tooltip>
+          </div>
+        );
+      default:
+        return cellValue;
+    }
+  }, []);
+
+
+
 
   return (
     <SidebarProvider>
@@ -1436,7 +1626,9 @@ export default function Page() {
           </div>
         </header>
         <Box sx={{ width: '100%' }}>
+          <h1 className="text-2xl font-semibold mb-8 mt-4" style={{ textAlign: "center" }}>Charts</h1>
           <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
+
             {/* Lead */}
             <Grid item xs={12} md={6} lg={4}>
               <Item>
@@ -1514,6 +1706,7 @@ export default function Page() {
 
             {/* Lead Table */}
             <Grid item xs={12} lg={6}>
+              <h1 className="text-2xl font-semibold mb-4 mt-4" style={{ textAlign: "center" }}>Lead Table</h1>
               <Item>
                 <div className="flex justify-between items-center gap-3">
                   <Input
@@ -1564,6 +1757,7 @@ export default function Page() {
 
             {/* Invoice Table */}
             <Grid item xs={12} sm={6} md={6} lg={6}>
+              <h1 className="text-2xl font-semibold mb-4 mt-4" style={{ textAlign: "center" }}>Invoice Table</h1>
               <Item>
                 <div className="flex justify-between items-center gap-3">
                   <Input
@@ -1612,6 +1806,7 @@ export default function Page() {
 
             {/* Deal Table */}
             <Grid item xs={12} sm={6} md={6} lg={6}>
+              <h1 className="text-2xl font-semibold mb-4 mt-4" style={{ textAlign: "center" }}>Deal Table</h1>
               <Item>
                 <div className="flex justify-between items-center gap-3">
                   <Input
@@ -1662,45 +1857,59 @@ export default function Page() {
 
             {/* Task Table */}
             <Grid item xs={12} sm={6} md={6} lg={6}>
+              <h1 className="text-2xl font-semibold mb-4 mt-4" style={{ textAlign: "center" }}>Task Table</h1>
               <Item>
-                <Item>
-                  <Table
-                    isHeaderSticky
-                    aria-label="Invoices table with custom cells, pagination and sorting"
-                    bottomContent={bottomContent}
-                    bottomContentPlacement="outside"
-                    classNames={{
-                      wrapper: "max-h-[382px]",
-                    }}
-                    selectedKeys={selectedKeys}
-                    selectionMode="multiple"
-                    topContentPlacement="outside"
-                  >
-                    <TableHeader columns={headerColumns}>
-                      {(column) => (
-                        <TableColumn
-                          key={column.uid}
-                          align={column.uid === "actions" ? "center" : "start"}
-                          allowsSorting={column.sortable}
-                        >
-                          {column.name}
-                        </TableColumn>
-                      )}
-                    </TableHeader>
-                    <TableBody emptyContent={"No invoices found"} items={sortedItems}>
-                      {(item) => (
-                        <TableRow key={item._id}>
-                          {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </Item>
+                <div className="flex justify-between items-center gap-3">
+                  <Input
+                    isClearable
+                    className="w-full sm:max-w-[44%]"
+                    placeholder="Search by name, email, product..."
+                    startContent={<Search size={20} />}
+                    value={filterValueTask}
+                    onClear={() => setFilterValueTask("")}
+                    onValueChange={setFilterValueTask}
+                  />
+                </div>
+                <Table
+                  isHeaderSticky
+                  aria-label="Tasks table with custom cells, pagination and sorting"
+                  bottomContent={bottomContentTask}
+                  bottomContentPlacement="outside"
+                  classNames={{
+                    wrapper: "max-h-[382px]",
+                  }}
+                  selectedKeys={selectedKeysTask}
+                  selectionMode="multiple"
+                  sortDescriptor={sortDescriptorTask}
+                  onSelectionChange={setSelectedKeysTask}
+                  onSortChange={setSortDescriptorTask}
+                >
+                  <TableHeader columns={columnsTask}>
+                    {(column) => (
+                      <TableColumn
+                        key={column.uid}
+                        align={column.uid === "actions" ? "center" : "start"}
+                        allowsSorting={column.sortable}
+                      >
+                        {column.name}
+                      </TableColumn>
+                    )}
+                  </TableHeader>
+                  <TableBody emptyContent={"No tasks found"} items={sortedTasks}>
+                    {(item) => (
+                      <TableRow key={item._id}>
+                        {(columnKey) => <TableCell>{renderCellTask(item, columnKey)}</TableCell>}
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </Item>
+
             </Grid>
 
             {/* Remainder Table */}
             <Grid item xs={12} sm={6} md={6} lg={6}>
+              <h1 className="text-2xl font-semibold mb-4 mt-4" style={{ textAlign: "center" }}>Remainder Table</h1>
               <Item>
                 <Item>
                   <Table
@@ -1740,6 +1949,7 @@ export default function Page() {
 
             {/* Scedule Table */}
             <Grid item xs={12} sm={6} md={6} lg={6}>
+              <h1 className="text-2xl font-semibold mb-4 mt-4" style={{ textAlign: "center" }}>Scedule Table</h1>
               <Item>
                 <Item>
                   <Table
