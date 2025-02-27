@@ -18,6 +18,7 @@ const ownerRoutes=require("./Owner.routes")
 const profileRoutes=require('./profile.routs')
 const dealRoutes = require("./deal.routes")
 const accountRoutes = require("./account.routes")
+
 // router.use("/user",userRouts)
 router.use("/invoice",invoiceRouts)
 router.use("/lead",leadRouts)

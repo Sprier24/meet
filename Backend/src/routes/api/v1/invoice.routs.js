@@ -12,4 +12,5 @@ router.get("/getUnpaidInvoices", InvoiceController.getUnpaidInvoices);
 router.get("/getPaidInvoices", InvoiceController.getPaidInvoices);
 router.post("/sendEmailReminder/:id", InvoiceController.sendEmailReminder); // Route to send email reminders
 router.put("/updateCustomMessage/:id",InvoiceController.updateCustomMessage)
+
 module.exports = router;
